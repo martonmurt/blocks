@@ -226,8 +226,9 @@ function normalizeTarget(file: NonNullable<RegistryItem["files"]>[number]): stri
 function findRegistryItem(
     name: string,
     base = getRegistryBase()
-): Registry["items"][number] | undefined {
-    return getRegistryIndex(base).items?.find((item) => item.name === name)
+): NonNullable<Registry["items"]>[number] | undefined {
+    const normalizedName = normalizeRegistryItemName(name)
+    return getRegistryIndex(base).items?.find((item) => item.name === normalizedName)
 }
 
 export function isRegistryIndexRequest(name: string): boolean {
