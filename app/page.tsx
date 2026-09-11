@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation'
 import { normalizeRegistryItemName } from '@/lib/registry-item'
 import { getRegistryBlocks, getRegistryComponent, getRegistryEntry, getRegistryKit } from '@/lib/registry'
 
-import { ComponentPreview } from './component-preview'
+import { ComponentPreview } from './view/[name]/component-preview'
 
 const getCachedRegistryEntry = React.cache((name: string) => {
     return getRegistryEntry(normalizeRegistryItemName(name))
