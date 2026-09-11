@@ -1,46 +1,53 @@
-import { ComponentPreview } from './view/[name]/component-preview'
+import * as React from 'react'
+import { type Metadata } from 'next'
+import { notFound } from 'next/navigation'
 
-const endpoints = [
-    {
-        href: '/registry',
-        label: '/registry',
-        description: 'Registry index for all Tailark items.',
-    },
-    {
-        href: '/registry.json',
-        label: '/registry.json',
-        description: 'shadcn-compatible registry index.',
-    },
-    {
-        href: '/registry/dusk-button',
-        label: '/registry/{name}',
-        description: 'Individual registry item endpoint.',
-    },
-]
+import { normalizeRegistryItemName } from '@/lib/registry-item'
+import { getRegistryBlocks, getRegistryComponent, getRegistryEntry, getRegistryKit } from '@/lib/registry'
 
-export default function Home() {
+import { ComponentPreview } from './component-preview'
+
+const getCachedRegistryEntry = React.cache((name: string) => {
+    return getRegistryEntry(normalizeRegistryItemName(name))
+})
+
+export async function generateStaticParams() {
+    return getRegistryBlocks().map((block) => ({
+        name: block.name,
+    }))
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ name: string }> }): Promise<Metadata> {
+    const { name } = await params
+    const item = getCachedRegistryEntry(name)
+
+    if (!item) {
+        return { title: 'Block not found | Tailark' }
+    }
+
+    return {
+        title: `${item.title ?? item.name} - Tailark`,
+        description: item.description,
+        robots: {
+            index: false,
+            follow: false,
+        },
+    }
+}
+
+export default async function RegistryBlockViewPage({ params }: { params: Promise<{ name: string }> }) {
+    const { name } = await params
+    const item = getCachedRegistryEntry(name)
+    const kit = getRegistryKit(name)
+    const Component = await getRegistryComponent(name)
+
+    if (!item || !kit || !Component) {
+        notFound()
+    }
+
     return (
-        <ComponentPreview theme="dusk">
-            <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center gap-8 px-6 py-16">
-                <div className="flex flex-col gap-3">
-                    <p className="font-mono text-sm text-muted-foreground">Tailark Registry</p>
-                    <h1 className="text-4xl font-semibold tracking-tight">Open source shadcn/ui registry for Tailark.</h1>
-                    <p className="max-w-2xl text-lg leading-8 text-muted-foreground">This repository serves the public registry endpoints. The marketing site can live in a separate closed-source app and proxy these paths from the same domain.</p>
-                </div>
-
-                <div className="grid gap-3">
-                    {endpoints.map((endpoint) => (
-                        <a
-                            className="rounded-xl border bg-card p-4 text-card-foreground transition hover:border-primary/50 hover:bg-accent hover:text-accent-foreground"
-                            href={endpoint.href}
-                            key={endpoint.href}
-                        >
-                            <span className="font-mono text-sm font-medium">{endpoint.label}</span>
-                            <p className="mt-1 text-sm text-muted-foreground">{endpoint.description}</p>
-                        </a>
-                    ))}
-                </div>
-            </main>
+        <ComponentPreview theme={kit}>
+            <Component />
         </ComponentPreview>
     )
 }
